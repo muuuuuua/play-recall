@@ -1,10 +1,13 @@
 #pragma once
 
-#include <absl/container/flat_hash_map.h>
+
 #include <fcntl.h>
 #include <filesystem>
-#include <glog/logging.h>
+#include <fstream>
 #include <sys/stat.h>
+
+#include "absl/container/flat_hash_map.h"
+#include "glog/logging.h"
 
 template <class T> bool ReadArrayData(std::vector<T>* data, const std::filesystem::path& path) {
     int fd = ::open(path.c_str(), O_RDONLY);
@@ -32,6 +35,20 @@ template <class T> bool ReadArrayData(std::vector<T>* data, const std::filesyste
         }
         buf += rc;
         size -= rc;
+    }
+    return true;
+}
+
+template <> bool ReadArrayData<std::string>(std::vector<std::string>* data, const std::filesystem::path& path) {
+    std::ifstream input(path.c_str());
+    if (!input) {
+        PLOG(ERROR) << "Fail to open file:" << path;
+        return false;
+    }
+
+    std::string line;
+    while (std::getline(input, line)) {
+        data->push_back(std::move(line));
     }
     return true;
 }
@@ -138,6 +155,7 @@ public:
         }
         return true;
     }
+
 private:
     absl::flat_hash_map<std::string, std::unique_ptr<InvertedIndex>> fields_;
 };

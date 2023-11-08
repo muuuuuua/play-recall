@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+.idea/
+bazel-bin/
+bazel-out/
+bazel-play-recall/
+bazel-testlogs/
