@@ -54,8 +54,10 @@ template <> bool ReadArrayData<std::string>(std::vector<std::string>* data, cons
 }
 
 struct InvertedIndex {
+    // term -> term id
     absl::flat_hash_map<std::string, uint32_t> dict;
     uint32_t next_term_id = 1;
+    // term id -> doc list
     std::vector<std::vector<uint32_t>> posting_lists;
     uint32_t doc_id_base = 0;
 
@@ -110,8 +112,6 @@ public:
             for (uint32_t term_index = term_begin; term_index < term_end; ++term_index) {
                 const auto& term = terms[term_index];
 
-                // if (!test_terms.count(term)) { continue; }
-
                 auto& term_id = index->dict[term];
                 if (term_id == 0) {
                     term_id = index->next_term_id;
@@ -156,6 +156,22 @@ public:
         return true;
     }
 
+    const std::vector<uint32_t>& GetPostings(const std::string& field, const std::string& term) const {
+        static std::vector<uint32_t> empty;
+
+        auto it = fields_.find(field);
+        if (it == fields_.end()) {
+            return empty;
+        }
+        const auto* index = it->second.get();
+        auto term_it = index->dict.find(term);
+        if (term_it == index->dict.end()) {
+            return empty;
+        }
+        return index->posting_lists[term_it->second];
+    }
+
 private:
+    // field -> [term, doc list]
     absl::flat_hash_map<std::string, std::unique_ptr<InvertedIndex>> fields_;
 };
