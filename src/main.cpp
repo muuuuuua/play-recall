@@ -17,16 +17,17 @@ void TestSimpleQueryVirtual(const IndexTest& index, const std::vector<std::strin
     AndQuery and_query(std::move(or_queries));
 
     int doc_count = 0;
-    int64_t begin = butil::cpuwide_time_us();
     auto* q = &and_query;
     q->dfs_print(std::cout);
+
+    int64_t begin = butil::cpuwide_time_us();
     while (true) {
         q->next_doc();
         auto doc = q->doc();
-        doc_count += 1;
         if (doc == NO_MORE_DOCS) {
             break;
         }
+        doc_count += 1;
     }
     int64_t end = butil::cpuwide_time_us();
     LOG(INFO) << "simple virtual and queries:" << (end - begin) << " " << doc_count;
@@ -45,7 +46,7 @@ int main() {
         {"我的世界", "出生", "点"},
         {"小甜", "什么", "都", "不", "知道"},
     };
-    std::vector<std::string> test_fields = {"title", "b_title", "uname", "staff", "tag", "custom_tag", "description"};
+    std::vector<std::string> test_fields = {"title", "b_title", "uname", "staff", "tag", "description"};
 
     for (auto terms : test_terms) {
         LOG(INFO) << "terms:" << absl::StrJoin(terms, " ");

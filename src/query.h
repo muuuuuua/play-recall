@@ -156,7 +156,7 @@ public:
     TermQuery(const std::vector<DocId>& postings, const std::string& term, const std::string& field);
 
     std::string name() const override {
-        return absl::StrCat(field_, "#", term_);
+        return absl::StrCat(field_, "#", term_, "->", cost());
     }
     DocId doc() const override {
         return current_doc_;
