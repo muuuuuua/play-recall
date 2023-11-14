@@ -117,12 +117,14 @@ DocId TermQuery::next_doc() {
     } else {
         current_doc_ = postings_[index_];
     }
+    return current_doc_;
 }
 
 DocId TermQuery::advance(DocId target) {
     if (!advance_to(target, postings_.data(), index_, postings_.size(), current_doc_, 8)) {
         current_doc_ = NO_MORE_DOCS;
     }
+    return current_doc_;
 }
 
 bool TermQuery::advance_to(DocId target, const DocId* docs, int& current, int end, DocId& doc, int skip_len) {

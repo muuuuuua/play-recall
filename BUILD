@@ -7,18 +7,42 @@ load("@com_google_protobuf//:protobuf.bzl", "cc_proto_library")
 #    visibility = ["//visibility:public"],
 #)
 
+cc_library(
+    name = "query",
+    srcs = ["src/query.cpp"],
+    hdrs = ["src/query.h"],
+    strip_include_prefix = "src",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "roaring",
+    srcs = ["src/roaring.cpp"],
+    hdrs = ["src/roaring.h"],
+    strip_include_prefix = "src",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 cc_binary(
     name = "main",
-    srcs = glob([
-        "src/*.cpp",
-        "src/*.h",
-    ]),
+    srcs = [
+        "src/index.h",
+        "src/main.cpp",
+    ],
     copts = [
         "-g",
         "--std=c++17",
     ],
-    linkopts = ["-lunwind"],
+    #    linkopts = ["-lunwind"],
     deps = [
+        ":query",
+        ":roaring",
         "@com_github_brpc_brpc//:butil",
         "@com_github_google_glog//:glog",
         "@com_google_absl//absl/container:flat_hash_map",
