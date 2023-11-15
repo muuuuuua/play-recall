@@ -37,21 +37,28 @@ void TestSimpleQueryVirtual(const IndexTest& index, const std::vector<std::strin
 
 void TestRoaringBitset(const IndexTest& index, const std::vector<std::string>& terms,
                        const std::vector<std::string>& fields) {
-    int64_t begin = butil::cpuwide_time_us();
-
-    std::vector<Roaring> and_queries;
+    std::vector<std::vector<Roaring>> and_queries;
     for (auto const& term : terms) {
-        Roaring or_query;
+        std::vector<Roaring> or_queries;
         for (auto const& field : fields) {
             const auto& postings = index.GetPostings(field, term);
-            or_query |= Roaring(postings.size(), postings.data());
+            or_queries.emplace_back(Roaring(postings.size(), postings.data()));
         }
-        and_queries.emplace_back(or_query);
+        and_queries.emplace_back(std::move(or_queries));
     }
 
-    Roaring res = and_queries[0];
+    int64_t begin = butil::cpuwide_time_us();
+    Roaring res;
+    for (size_t j = 0;j < and_queries[0].size();j++) {
+        res |= and_queries[0][j];
+    }
+
     for (size_t i = 1; i < and_queries.size(); i++) {
-        res &= and_queries[i];
+        Roaring temp = and_queries[i][0];
+        for (size_t j = 1;j < and_queries[i].size();j++) {
+            temp |= and_queries[i][j];
+        }
+        res &= temp;
     }
     int doc_count = res.cardinality();
 
