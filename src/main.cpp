@@ -2,7 +2,9 @@
 #include "butil/time.h"
 #include "index.h"
 #include "query.h"
-#include "roaring.h"
+#include "roaring.hh"
+
+using namespace roaring;
 
 void TestSimpleQueryVirtual(const IndexTest& index, const std::vector<std::string>& terms,
                             const std::vector<std::string>& fields) {
@@ -33,6 +35,30 @@ void TestSimpleQueryVirtual(const IndexTest& index, const std::vector<std::strin
     LOG(INFO) << "simple virtual and queries:" << (end - begin) << " " << doc_count;
 }
 
+void TestRoaringBitset(const IndexTest& index, const std::vector<std::string>& terms,
+                       const std::vector<std::string>& fields) {
+    int64_t begin = butil::cpuwide_time_us();
+
+    std::vector<Roaring> and_queries;
+    for (auto const& term : terms) {
+        Roaring or_query;
+        for (auto const& field : fields) {
+            const auto& postings = index.GetPostings(field, term);
+            or_query |= Roaring::bitmapOf(postings.size(), postings.data());
+        }
+        and_queries.emplace_back(or_query);
+    }
+
+    Roaring res = and_queries[0];
+    for (size_t i = 1; i < and_queries.size(); i++) {
+        res &= and_queries[i];
+    }
+    int doc_count = res.cardinality();
+
+    int64_t end = butil::cpuwide_time_us();
+    LOG(INFO) << "roaring bitset and queries:" << (end - begin) << " " << doc_count;
+}
+
 int main() {
     IndexTest test;
     test.LoadSlice("index_data/video4_0.base/slice.0");
@@ -52,7 +78,7 @@ int main() {
         LOG(INFO) << "terms:" << absl::StrJoin(terms, " ");
         // TestSimpleQuery(test, terms, test_fields);
         TestSimpleQueryVirtual(test, terms, test_fields);
-        // TestRoaringBitset(test, terms, test_fields);
+        TestRoaringBitset(test, terms, test_fields);
     }
 
     return 0;

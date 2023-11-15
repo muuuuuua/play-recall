@@ -148,3 +148,10 @@ git_repository(
     remote = "https://github.com/abseil/abseil-cpp.git",
     tag = "20230125.3",
 )
+
+git_repository(
+    name = "com_github_croaring",
+    build_file = "//third_party:croaring.BUILD",
+    remote = "https://github.com/RoaringBitmap/CRoaring.git",
+    tag = "v2.0.4",
+)
