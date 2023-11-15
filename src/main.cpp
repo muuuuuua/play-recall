@@ -44,7 +44,7 @@ void TestRoaringBitset(const IndexTest& index, const std::vector<std::string>& t
         Roaring or_query;
         for (auto const& field : fields) {
             const auto& postings = index.GetPostings(field, term);
-            or_query |= Roaring::bitmapOf(postings.size(), postings.data());
+            or_query |= Roaring(postings.size(), postings.data());
         }
         and_queries.emplace_back(or_query);
     }
