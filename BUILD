@@ -28,7 +28,12 @@ cc_binary(
         "-g",
         "--std=c++17",
     ],
-    #    linkopts = ["-lunwind"],
+    linkopts = select({
+        "@bazel_tools//src/conditions:linux": [
+            "-lunwind",
+        ],
+        "//conditions:default": [],
+    }),
     deps = [
         ":query",
         "@com_github_brpc_brpc//:butil",
