@@ -48,17 +48,21 @@ void TestRoaringBitset(const IndexTest& index, const std::vector<std::string>& t
     }
 
     int64_t begin = butil::cpuwide_time_us();
-    Roaring res;
-    for (size_t j = 0;j < and_queries[0].size();j++) {
-        res |= and_queries[0][j];
-    }
 
-    for (size_t i = 1; i < and_queries.size(); i++) {
-        Roaring temp = and_queries[i][0];
-        for (size_t j = 1;j < and_queries[i].size();j++) {
-            temp |= and_queries[i][j];
+    std::vector<Roaring> and_candidates(and_queries.size());
+    for (size_t i = 0; i < and_queries.size(); i++) {
+        std::vector<Roaring*> temp(and_queries[i].size());
+        for (size_t k = 0; k < and_queries[i].size(); k++) {
+            temp[k] = &and_queries[i][k];
         }
-        res &= temp;
+        and_candidates[i] = Roaring::fastunion(and_queries[0].size(), const_cast<const Roaring**>(temp.data()));
+    }
+    std::sort(and_candidates.begin(), and_candidates.end(),
+              [](const Roaring& a, const Roaring& b) { return a.cardinality() < b.cardinality(); });
+
+    Roaring res = and_candidates[0];
+    for (size_t i = 1; i < and_candidates.size(); i++) {
+        res &= and_candidates[i];
     }
     int doc_count = res.cardinality();
 
