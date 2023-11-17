@@ -20,7 +20,7 @@ void TestSimpleQueryVirtual(const IndexTest& index, const std::vector<std::strin
 
     int doc_count = 0;
     auto* q = &and_query;
-    q->dfs_print(std::cout);
+    // q->dfs_print(std::cout);
 
     int64_t begin = butil::cpuwide_time_us();
     while (true) {
@@ -33,6 +33,26 @@ void TestSimpleQueryVirtual(const IndexTest& index, const std::vector<std::strin
     }
     int64_t end = butil::cpuwide_time_us();
     LOG(INFO) << "simple virtual and queries:" << (end - begin) << " " << doc_count;
+}
+
+Roaring fastunion(const std::vector<Roaring>& inputs) {
+    size_t n = inputs.size();
+    const auto** x = (const api::roaring_bitmap_t**)roaring_malloc(n * sizeof(api::roaring_bitmap_t*));
+    if (x == nullptr) {
+        ROARING_TERMINATE("failed memory alloc in fastunion");
+    }
+    for (size_t k = 0; k < n; ++k) {
+        x[k] = &inputs[k].roaring;
+    }
+
+    api::roaring_bitmap_t* c_ans = api::roaring_bitmap_or_many_heap(n, x);
+    if (c_ans == nullptr) {
+        roaring_free(x);
+        ROARING_TERMINATE("failed memory alloc in fastunion");
+    }
+    Roaring ans(c_ans);
+    roaring_free(x);
+    return ans;
 }
 
 void TestRoaringBitset(const IndexTest& index, const std::vector<std::string>& terms,
@@ -51,22 +71,24 @@ void TestRoaringBitset(const IndexTest& index, const std::vector<std::string>& t
 
     std::vector<Roaring> and_candidates(and_queries.size());
     for (size_t i = 0; i < and_queries.size(); i++) {
-        std::vector<Roaring*> temp(and_queries[i].size());
-        for (size_t k = 0; k < and_queries[i].size(); k++) {
-            temp[k] = &and_queries[i][k];
-        }
-        and_candidates[i] = Roaring::fastunion(and_queries[0].size(), const_cast<const Roaring**>(temp.data()));
+        and_candidates[i] = fastunion(and_queries[i]);
     }
+
+    int64_t ck0 = butil::cpuwide_time_us();
+
     std::sort(and_candidates.begin(), and_candidates.end(),
               [](const Roaring& a, const Roaring& b) { return a.cardinality() < b.cardinality(); });
+
+    int64_t ck1 = butil::cpuwide_time_us();
 
     Roaring res = and_candidates[0];
     for (size_t i = 1; i < and_candidates.size(); i++) {
         res &= and_candidates[i];
     }
-    int doc_count = res.cardinality();
+    auto doc_count = res.cardinality();
 
     int64_t end = butil::cpuwide_time_us();
+    LOG(INFO) << "union: " << ck0 - begin << " sort: " << ck1 - ck0 << " and: " << end - ck1;
     LOG(INFO) << "roaring bitset and queries:" << (end - begin) << " " << doc_count;
 }
 
