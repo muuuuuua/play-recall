@@ -60,8 +60,6 @@ struct InvertedIndex {
     // term id -> doc list
     std::vector<std::vector<uint32_t>> posting_lists;
     uint32_t doc_id_base = 0;
-
-    // std::vector<roaring::PostingList> roaring_postings;
 };
 
 class IndexTest {
@@ -93,7 +91,7 @@ public:
             return false;
         }
 
-        for (int i = 0; i < field_names.size(); ++i) {
+        for (size_t i = 0; i < field_names.size(); ++i) {
             const auto& fn = field_names[i];
             auto term_begin = field_term_range[i];
             auto term_end = field_term_range[i + 1];
@@ -102,7 +100,7 @@ public:
                 index.reset(new InvertedIndex);
             }
 
-            int term_size = term_end - term_begin;
+            auto term_size = term_end - term_begin;
             LOG(INFO) << "field:" << fn << " term_size:" << term_size;
             if (index->posting_lists.size() < term_size) {
                 index->posting_lists.resize(term_size);
